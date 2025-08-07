@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Code Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+      background: #f4f4f4;
+    }
+    h1 {
+      color: #333;
+    }
+    input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-left: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #qrImage {
+      margin-top: 20px;
+    }
+    a#downloadLink {
+      display: block;
+      margin-top: 10px;
+      text-decoration: none;
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>QR Code Generator</h1>
+  <input type="text" id="qrText" placeholder="Enter text or URL" />
+  <button onclick="generateQRCode()">Generate</button>
+
+  <div id="qrImage"></div>
+  <a id="downloadLink" download="qrcode.png">Download QR Code</a>
+
+  <script>
+    function generateQRCode() {
+      const text = document.getElementById('qrText').value;
+      const qrImage = document.getElementById('qrImage');
+      const downloadLink = document.getElementById('downloadLink');
+
+      if (!text.trim()) {
+        qrImage.innerHTML = '<p>Please enter text.</p>';
+        downloadLink.style.display = 'none';
+        return;
+      }
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
+      qrImage.innerHTML = `<img src="${qrUrl}" alt="QR Code" id="qrCodeImage" />`;
+      downloadLink.href = qrUrl;
+      downloadLink.style.display = 'inline-block';
+    }
+  </script>
+
+</body>
+</html>
