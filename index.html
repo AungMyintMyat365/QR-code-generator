@@ -18,10 +18,10 @@
       padding: 10px;
       width: 300px;
       font-size: 16px;
+      margin: 5px;
     }
     button {
       padding: 10px 20px;
-      margin-left: 10px;
       font-size: 16px;
       cursor: pointer;
     }
@@ -29,7 +29,7 @@
       margin-top: 20px;
     }
     a#downloadLink {
-      display: block;
+      display: none;
       margin-top: 10px;
       text-decoration: none;
       color: #007bff;
@@ -39,28 +39,48 @@
 <body>
 
   <h1>QR Code Generator</h1>
-  <input type="text" id="qrText" placeholder="Enter text or URL" />
+
+  <input type="text" id="qrText" placeholder="Enter text or URL" /><br />
+  <input type="text" id="fileName" placeholder="Enter file name (optional)" /><br />
   <button onclick="generateQRCode()">Generate</button>
 
   <div id="qrImage"></div>
-  <a id="downloadLink" download="qrcode.png">Download QR Code</a>
+  <a id="downloadLink">Download QR Code</a>
 
   <script>
     function generateQRCode() {
-      const text = document.getElementById('qrText').value;
-      const qrImage = document.getElementById('qrImage');
+      const text = document.getElementById('qrText').value.trim();
+      const fileName = document.getElementById('fileName').value.trim() || "qrcode";
+      const qrImageDiv = document.getElementById('qrImage');
       const downloadLink = document.getElementById('downloadLink');
 
-      if (!text.trim()) {
-        qrImage.innerHTML = '<p>Please enter text.</p>';
+      if (!text) {
+        qrImageDiv.innerHTML = '<p>Please enter text.</p>';
         downloadLink.style.display = 'none';
         return;
       }
 
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
-      qrImage.innerHTML = `<img src="${qrUrl}" alt="QR Code" id="qrCodeImage" />`;
-      downloadLink.href = qrUrl;
-      downloadLink.style.display = 'inline-block';
+      const img = new Image();
+      img.src = qrUrl;
+      img.alt = "QR Code";
+      img.id = "qrCodeImage";
+
+      img.onload = () => {
+        // Display the image
+        qrImageDiv.innerHTML = '';
+        qrImageDiv.appendChild(img);
+
+        // Fetch the image blob and create a download link
+        fetch(qrUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const objectUrl = URL.createObjectURL(blob);
+            downloadLink.href = objectUrl;
+            downloadLink.download = fileName + ".png";
+            downloadLink.style.display = 'inline-block';
+          });
+      };
     }
   </script>
 
