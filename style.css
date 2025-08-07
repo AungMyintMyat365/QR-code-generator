@@ -27,7 +27,7 @@
       text-decoration: none;
       color: #007bff;
     }
-/* From Uiverse.io by OliverZeros */ 
+
 button {
   all: unset;
 }
@@ -161,7 +161,7 @@ button {
   transition-delay: 0.2s;
   transform: scale(1);
 }
-/* From Uiverse.io by kennyotsu-monochromia */ 
+
 .container {
   width: 100%;
   height: 100%;
