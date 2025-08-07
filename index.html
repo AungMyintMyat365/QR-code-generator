@@ -42,7 +42,22 @@
 
   <input type="text" id="qrText" placeholder="Enter text or URL" /><br />
   <input type="text" id="fileName" placeholder="Enter file name (optional)" /><br />
-  <button onclick="generateQRCode()">Generate</button>
+  <!-- From Uiverse.io by OliverZeros --> 
+<button onclick="generateQRCode()" class="button button-item">
+  <span class="button-bg">
+    <span class="button-bg-layers">
+      <span class="button-bg-layer button-bg-layer-1 -purple"></span>
+      <span class="button-bg-layer button-bg-layer-2 -turquoise"></span>
+      <span class="button-bg-layer button-bg-layer-3 -yellow"></span>
+    </span>
+  </span>
+  <span class="button-inner">
+    <span class="button-inner-static">Generate</span>
+    <span class="button-inner-hover">Generate</span>
+  </span>
+</button>
+
+
 
   <div id="qrImage"></div>
   <a id="downloadLink">Download QR Code</a>
