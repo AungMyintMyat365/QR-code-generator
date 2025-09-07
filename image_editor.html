@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Editor</title>
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🖼️ Image Editor</h1>
+    <input type="file" id="upload" accept="image/*">
+    <canvas id="canvas"></canvas>
+    
+    <div class="tools">
+      <button onclick="removeBackground()">Remove Background</button>
+      <button onclick="convertImage('png')">Convert to PNG</button>
+      <button onclick="convertImage('jpeg')">Convert to JPG</button>
+      <button onclick="convertImage('webp')">Convert to WebP</button>
+    </div>
+    
+    <a href="../index.html" class="btn">⬅ Back</a>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
