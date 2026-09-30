@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video to GIF</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f4f4f4; color: #333; }
+    nav { margin-bottom: 20px; }
+    nav a { color: #007bff; }
+    #drop { max-width: 480px; margin: 0 auto; padding: 40px 20px; border: 2px dashed #999; border-radius: 8px; background: #fff; cursor: pointer; }
+    #drop.over { border-color: #007bff; background: #eef5ff; }
+    #opts { max-width: 480px; margin: 20px auto 0; text-align: left; background: #fff; padding: 20px; border-radius: 8px; }
+    #opts[hidden] { display: none; }
+    video { width: 100%; border-radius: 6px; background: #000; }
+    .row { display: flex; gap: 12px; margin-top: 14px; }
+    .row label { flex: 1; font-size: 14px; }
+    input, select { width: 100%; padding: 8px; font-size: 16px; box-sizing: border-box; margin-top: 4px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 16px; }
+    progress { width: 100%; margin-top: 16px; }
+    #info, #status { font-size: 14px; color: #555; margin-top: 12px; }
+    #out { max-width: 100%; margin-top: 12px; border-radius: 6px; }
+    a#dl { display: none; margin-top: 10px; color: #007bff; }
+  </style>
+</head>
+<body>
+  <nav><a href="index.html">QR Code</a> | <strong>Video to GIF</strong></nav>
+  <h1>Video to GIF</h1>
+  <p>Convert a video to a GIF right in your browser. Your file is never uploaded.</p>
+
+  <div id="drop">Drop a video here, or click to choose one
+    <input type="file" id="file" accept="video/*" hidden />
+  </div>
+
+  <div id="opts" hidden>
+    <video id="video" controls muted playsinline></video>
+    <div class="row">
+      <label>Start (seconds)<input type="number" id="start" min="0" step="0.1" value="0" /></label>
+      <label>End (seconds)<input type="number" id="end" min="0" step="0.1" value="5" /></label>
+    </div>
+    <div class="row">
+      <label>Frames per second
+        <select id="fps"><option>5</option><option selected>10</option><option>15</option><option>24</option></select>
+      </label>
+      <label>Width
+        <select id="width"><option>320</option><option selected>480</option><option>640</option><option value="0">Original</option></select>
+      </label>
+    </div>
+    <div id="info"></div>
+    <button id="go">Convert to GIF</button>
+    <button id="cancel" hidden>Cancel</button>
+    <progress id="bar" value="0" max="1" hidden></progress>
+    <div id="status"></div>
+  </div>
+
+  <img id="out" alt="" hidden />
+  <a id="dl">Download GIF</a>
+  <canvas id="c" hidden></canvas>
+
+  <script type="module">
+    import { GIFEncoder, quantize, applyPalette } from "https://unpkg.com/gifenc@1.0.3/dist/gifenc.esm.js";
+    const $ = id => document.getElementById(id);
+    const v = $('video'), c = $('c'), MAX_CLIP = 30, MAX_MB = 200;
+    let cancelled = false, srcUrl, gifUrl, baseName = 'video';
+
+    $('drop').onclick = () => $('file').click();
+    $('file').onchange = e => load(e.target.files[0]);
+    $('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
+    $('drop').ondragleave = () => $('drop').classList.remove('over');
+    $('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); load(e.dataTransfer.files[0]); };
+
+    function load(f) {
+      if (!f) return;
+      if (!f.type.startsWith('video/')) return say('That is not a video file. Choose an MP4, WebM or MOV.');
+      if (f.size > MAX_MB * 1048576) return say(`That file is over ${MAX_MB} MB. Choose a smaller video.`);
+      if (srcUrl) URL.revokeObjectURL(srcUrl);
+      srcUrl = URL.createObjectURL(f);
+      baseName = f.name.replace(/\.[^.]+$/, '');
+      v.src = srcUrl;
+      $('out').hidden = true; $('dl').style.display = 'none';
+    }
+    v.onerror = () => say('This browser cannot play that video. Try an MP4 (H.264) or WebM file.');
+    v.onloadedmetadata = () => {
+      $('opts').hidden = false;
+      $('start').value = 0;
+      $('end').value = Math.min(v.duration, 5).toFixed(1);
+      say(''); update();
+    };
+    ['start', 'end', 'fps', 'width'].forEach(id => $(id).oninput = update);
+
+    function dims() {
+      const w = Math.min(+$('width').value || v.videoWidth, v.videoWidth);
+      return [w, Math.round(w * v.videoHeight / v.videoWidth)];
+    }
+    function update() {
+      const len = +$('end').value - +$('start').value;
+      const n = Math.max(0, Math.floor(len * +$('fps').value));
+      const [w, h] = dims();
+      const mb = (w * h * n * 0.1 / 1048576).toFixed(1);
+      $('info').textContent = `${n} frames at ${w}×${h}px, roughly ${mb} MB (rough guess).`;
+    }
+    function say(t) { $('status').textContent = t; }
+    function seek(t) {
+      return new Promise(r => {
+        t = Math.min(t, v.duration - 0.01);
+        if (Math.abs(v.currentTime - t) < 0.001) return r();
+        v.onseeked = () => r();
+        v.currentTime = t;
+      });
+    }
+
+    $('cancel').onclick = () => { cancelled = true; };
+    $('go').onclick = async () => {
+      const s = +$('start').value, e = Math.min(+$('end').value, v.duration), fps = +$('fps').value;
+      if (!(e > s)) return say('End time must be after start time.');
+      if (e - s > MAX_CLIP) return say(`Clips are limited to ${MAX_CLIP} seconds. Shorten the range.`);
+      const [w, h] = dims(), n = Math.max(1, Math.floor((e - s) * fps));
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      const gif = GIFEncoder();
+      cancelled = false; v.pause();
+      $('go').hidden = true; $('cancel').hidden = false; $('bar').hidden = false; $('bar').value = 0;
+      try {
+        for (let i = 0; i < n; i++) {
+          if (cancelled) { say('Cancelled.'); return; }
+          await seek(s + i / fps);
+          ctx.drawImage(v, 0, 0, w, h);
+          const { data } = ctx.getImageData(0, 0, w, h);
+          const palette = quantize(data, 256);
+          gif.writeFrame(applyPalette(data, palette), w, h, { palette, delay: 1000 / fps });
+          $('bar').value = (i + 1) / n;
+          say(`Frame ${i + 1} of ${n}`);
+          await new Promise(r => setTimeout(r));
+        }
+        gif.finish();
+        const blob = new Blob([gif.bytes()], { type: 'image/gif' });
+        if (gifUrl) URL.revokeObjectURL(gifUrl);
+        gifUrl = URL.createObjectURL(blob);
+        $('out').src = gifUrl; $('out').hidden = false;
+        $('dl').href = gifUrl; $('dl').download = baseName + '.gif'; $('dl').style.display = 'inline-block';
+        say(`Done. GIF size: ${(blob.size / 1048576).toFixed(2)} MB.`);
+      } catch (err) {
+        say('Conversion failed: ' + err.message);
+      } finally {
+        $('go').hidden = false; $('cancel').hidden = true; $('bar').hidden = true;
+      }
+    };
+  </script>
+</body>
+</html>
